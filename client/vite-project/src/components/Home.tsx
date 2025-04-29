@@ -1,24 +1,13 @@
- import Leftsidebar from './Leftsidebar'
-import Rightsidebar from './Rightsidebar'
-import { Outlet } from 'react-router-dom'
+import { Outlet } from "react-router-dom";
+import LeftNavigation from "../components/Leftsidebar";
 
-const Home = () => {
+const HomeLayout = () => {
   return (
-    <div className="flex justify-between w-full">
-  <div className="w-[20%]">
-    <Leftsidebar />
+    <div className="flex  w-screen h-screen mx-auto border-2">
+    <LeftNavigation/>
+    <Outlet/>
   </div>
+  );
+};
 
-  <div className="w-[60%]">
-    <Outlet />
-  </div>
-
-  <div className="w-[20%]">
-    <Rightsidebar />
-  </div>
-</div>
-
-  )
-}
-
-export default Home
+export default HomeLayout;

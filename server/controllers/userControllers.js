@@ -1,6 +1,7 @@
 import { User } from "../models/userSchema.js";
 import bcryptjs from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { Posts } from "../models/postSchema.js";
 
 export const Register = async (req, res) => {
     try {
@@ -20,9 +21,10 @@ export const Register = async (req, res) => {
       await User.create({
         UserName,
         Email,
-        RoleId,
+        Role:RoleId,
         RewardPoints:50,
-        Password: hashedPassWord
+        Password: hashedPassWord,
+        lastLoginAt: new Date()
       })
       return res.status(200).json({
         message: "Account Created Successfully,You have been rewarded with 50 points for creating an Account",
@@ -43,6 +45,7 @@ export const Register = async (req, res) => {
         console.log({ Email, Password });
 
         if (!Email || !Password) {
+            console.log(req.body)
             return res.status(400).json({ message: "Please provide all the details", success: false });
         }
 
@@ -67,11 +70,11 @@ export const Register = async (req, res) => {
          
         const today = new Date();
         today.setHours(0, 0, 0, 0);  
-
+         console.log(!user.lastLoginAt);
         let updatedUser = user;
       let welcomemessage=`Welcome back ${updatedUser.UserName}`;
 
-        if ((!user.lastLoginAt || new Date(user.lastLoginAt) < today)&&user.Role==='Admin') {
+        if ((!user.lastLoginAt || new Date(user.lastLoginAt) < today)&&user.Role==='User') {
             updatedUser = await User.findByIdAndUpdate(
                 user._id,
                 {
@@ -80,7 +83,7 @@ export const Register = async (req, res) => {
                 },
                 { new: true }
             );
-            welcomemessage=`Welcome back ${updatedUser.UserName},Your Reward Points have been added to your wallet.`;
+            welcomemessage=`Welcome back ${updatedUser.UserName},Your daily login Reward Points have been added to your wallet.`;
             console.log("Reward points added for daily login!");
         }
 
@@ -154,40 +157,258 @@ export const Register = async (req, res) => {
     }
 }
 
-export const Bookmark = async (req, res) => {
+export const BookmarkPost = async (req, res) => {
     try {
-        const loggedInUserId = req.body.id;  
-        const postId = req.params.id;      
+        const loggedInUserId = req.params.id;
+        const { postId, title, content, Platform } = req.body;
 
         if (!loggedInUserId || !postId) {
             return res.status(400).json({ message: "User ID and Post ID are required", success: false });
         }
 
         const user = await User.findById(loggedInUserId);
-
         if (!user) {
             return res.status(404).json({ message: "User not found", success: false });
         }
 
-        
-        const isBookmarked = user.bookmarks.includes(postId);
+        const isAlreadyBookmarked = user.savedPosts.includes(postId);
 
-        if (isBookmarked) {
-            await User.findByIdAndUpdate(loggedInUserId, { $pull: { bookmarks: postId } });
-            return res.status(200).json({ message: "Removed from bookmarks", success: true });
+        if (isAlreadyBookmarked) {
+            
+            await User.findByIdAndUpdate(
+                loggedInUserId,
+                { $pull: { savedPosts: postId } },
+                { new: true }
+            );
+
+            await Posts.findOneAndDelete({ postId });
+
+            return res.status(200).json({ 
+                message: "Post removed from bookmarks successfully", 
+                success: true 
+            });
         } else {
-            await User.findByIdAndUpdate(loggedInUserId, { $addToSet: { bookmarks: postId } }); 
-            return res.status(200).json({ message: "Added to bookmarks", success: true });
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            await Posts.create({
+                postId,
+                title,
+                content,
+                Platform,
+                ActionType: "Saved",
+                ActionBy: loggedInUserId,    
+                ActionAt: today
+            });
+
+            await User.findByIdAndUpdate(
+                loggedInUserId,
+                {
+                    $addToSet: { savedPosts: postId },
+                },
+                { new: true }
+            );
+
+            return res.status(200).json({ 
+                message: "Post bookmarked successfully.", 
+                success: true 
+            });
         }
 
     } catch (error) {
-        console.error("Error in Bookmark:", error);
+        console.error("Error in BookmarkPost:", error);
         return res.status(500).json({
             message: "An error occurred",
             success: false,
         });
     }
 };
+
+export const GetSavedPosts = async (req, res) => {
+    try {
+        const loggedInUserId = req.params.id;
+
+        if (!loggedInUserId) {
+            return res.status(400).json({ message: "User ID is required", success: false });
+        }
+
+        const user = await User.findById(loggedInUserId);
+        if (!user) {
+            return res.status(404).json({ message: "User not found", success: false });
+        }
+
+        
+        const savedPosts = await Posts.find({ 
+            postId: { $in: user.savedPosts } 
+        });
+
+        return res.status(200).json({
+            message: "Fetched saved posts successfully.",
+            success: true,
+            data: savedPosts
+        });
+
+    } catch (error) {
+        console.error("Error in GetSavedPosts:", error);
+        return res.status(500).json({
+            message: "An error occurred",
+            success: false,
+        });
+    }
+};
+
+
+export const ReportPost = async (req, res) => {
+    try {
+        const loggedInUserId = req.params.id;   
+        const {postId, title, content, Platform } = req.body;
+      
+        if (!loggedInUserId || !postId) {
+            return res.status(400).json({ message: "User ID and Post ID are required", success: false });
+        }
+
+        const user = await User.findById(loggedInUserId);
+        if (!user) {
+            return res.status(404).json({ message: "User not found", success: false });
+        }
+
+        const isAlreadyReported = user.reportedPosts.includes(postId);
+
+        if (isAlreadyReported) {
+            
+            await User.findByIdAndUpdate(
+                loggedInUserId,
+                { $pull: { reportedPosts: postId } },
+                { new: true }
+            );
+
+             
+            await Posts.findOneAndDelete({ postId });
+
+            return res.status(200).json({ message: "Post unreported and deleted successfully", success: true });
+        } else {
+           
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const newReportedPost = await Posts.create({
+                postId,
+                title,
+                content,
+                Platform,
+                ActionType: "Reported",
+                ActionBy: loggedInUserId,
+                ActionAt: today
+            });
+
+            await User.findByIdAndUpdate(
+                loggedInUserId,
+                {
+                    $addToSet: { reportedPosts: postId  },
+                    $inc: { RewardPoints: 5 }
+                },
+                { new: true }
+            );
+
+            return res.status(200).json({ 
+                message: "Post reported successfully and 5 reward points credited.", 
+                success: true 
+            });
+        }
+
+    } catch (error) {
+        console.error("Error in ReportPost:", error);
+        return res.status(500).json({
+            message: "An error occurred",
+            success: false,
+        });
+    }
+};
+
+export const GetReportedPosts = async (req, res) => {
+    try {
+        const loggedInUserId = req.params.id;
+
+        if (!loggedInUserId) {
+            return res.status(400).json({ message: "User ID is required", success: false });
+        }
+
+        const user = await User.findById(loggedInUserId);
+        if (!user) {
+            return res.status(404).json({ message: "User not found", success: false });
+        }
+
+        // Fetch posts from the Posts collection based on the reportedPosts array in User
+        const reportedPosts = await Posts.find({ 
+            postId: { $in: user.reportedPosts } 
+        });
+
+        return res.status(200).json({
+            message: "Fetched reported posts successfully.",
+            success: true,
+            data: reportedPosts
+        });
+
+    } catch (error) {
+        console.error("Error in GetReportedPosts:", error);
+        return res.status(500).json({
+            message: "An error occurred",
+            success: false,
+        });
+    }
+};
+
+
+export const GetAllReportedPosts = async (req, res) => {
+    try {
+        const loggedInUserId = req.params.id;
+
+        if (!loggedInUserId) {
+            return res.status(400).json({ message: "User ID is required", success: false });
+        }
+
+        const user = await User.findById(loggedInUserId);
+        if (!user) {
+            return res.status(404).json({ message: "User not found", success: false });
+        }
+
+        const reportedPosts = await Posts.find({
+            ActionType: { $in: "Reported" },
+            ActionBy: { $ne: loggedInUserId }  
+        }).populate({
+            path: "ActionBy",
+            select: "UserName Email"  
+          });
+
+        return res.status(200).json({
+            message: "Fetched reported posts (not reported by you) successfully.",
+            success: true,
+            data: reportedPosts
+        });
+
+    } catch (error) {
+        console.error("Error in GetReportedPostsNotByMe:", error);
+        return res.status(500).json({
+            message: "An error occurred",
+            success: false,
+        });
+    }
+};
+
+export const UpdateReward=async(req, res)=>{
+    const { id } = req.params;
+  const { RewardPoints } = req.body;
+
+  try {
+    await User.findByIdAndUpdate(id, { RewardPoints });
+    res.status(200).json({ message: "Reward points updated." });
+  } catch (err) {
+    res.status(500).json({ message: "Error updating reward points." });
+  }
+  };
+ 
+
 
 export const getMyProfile = async (req, res) => {
     try {

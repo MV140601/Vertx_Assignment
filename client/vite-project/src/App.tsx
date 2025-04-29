@@ -1,11 +1,12 @@
-import ProjectBody from './components/Projectbody.js'
- 
 
+import ProjectBody from "./components/Projectbody";
+import { Toaster } from 'react-hot-toast';
 function App() {
  
   return (
-    <div className='w-full'>
-    <ProjectBody/>
+    <div>
+     <ProjectBody/>
+     <Toaster/>
     </div>
   )
 }

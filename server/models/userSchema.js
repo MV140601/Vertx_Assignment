@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { Posts } from "./postSchema.js";
 
 const userSchema = new mongoose.Schema({
     UserName: { type: String, required: true, unique: true }, 
@@ -9,8 +10,8 @@ const userSchema = new mongoose.Schema({
     About: { type: String },
     RewardPoints: { type: Number, default: 0 },
     likedPosts: { type: [String], default: [] },     
-    savedPosts: { type: [String], default: [] },
-    reportedPosts: { type: [String], default: [] },
+    savedPosts: { type: [String], default: [] }, 
+    reportedPosts: { type: [String], default: [] }, 
     lastLoginAt: { type: Date, default: null }    
 }, { timestamps: true });
 
