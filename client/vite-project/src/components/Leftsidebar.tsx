@@ -11,8 +11,24 @@ import axios from "axios";
 import { USER_API_END_POINT } from '../utils/constant';
 import toast from "react-hot-toast";
 import { RootState } from "../redux/store";  
+import { AppDispatch } from '../redux/store';
+import { setUser } from '../redux/userSlice';
+import { User } from '../models/userModel';
 const LeftNavigation = () => {
     const { user } = useSelector((state: RootState) => state.user);
+     const dispatch = useDispatch<AppDispatch>();
+       const navigate = useNavigate();
+    const logoutHandler = async () => {
+        try {
+            const res = await axios.get(`${USER_API_END_POINT}/logout`);
+            navigate('/login');
+            
+            dispatch(setUser(null as User | null));
+            toast.success(res.data.message);
+        } catch (error) {
+            console.log(error);
+        }
+    }
   console.log(user);
     return (
         <div className="w-[20%] bg-gray-300  h-[60%]    ">
@@ -29,12 +45,6 @@ const LeftNavigation = () => {
                         <CiHome size="24px" />
                     </div>
                     <h1 className='font-bold text-lg ml-2'>Home</h1>
-                </Link>
-                <Link to="/notifications" className='flex items-center my-2 px-4 py-2 hover:bg-gray-200 hover:cursor-pointer rounded-full'>
-                    <div>
-                        <CiHome size="24px" />
-                    </div>
-                    <h1 className='font-bold text-lg ml-2'>Notifications</h1>
                 </Link>
                 {user?.Role=="Admin" &&
                 <Link to="/allusers" className='flex items-center my-2 px-4 py-2 hover:bg-gray-200 hover:cursor-pointer rounded-full'>
@@ -61,12 +71,12 @@ const LeftNavigation = () => {
                     </div>
                     <h1 className='font-bold text-lg ml-2'>Profile</h1>
                 </Link>}
-                <Link to="/notifications" className='flex items-center my-2 px-4 py-2 hover:bg-gray-200 hover:cursor-pointer rounded-full'>
+                <div to="/notifications" onClick={logoutHandler} className='flex items-center my-2 px-4 py-2 hover:bg-gray-200 hover:cursor-pointer rounded-full'>
                     <div>
                         <CiHome size="24px" />
                     </div>
                     <h1 className='font-bold text-lg ml-2'>Logout</h1>
-                </Link>
+                </div>
              </div>
         </div>
     </div>

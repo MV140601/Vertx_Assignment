@@ -28,7 +28,7 @@ const Alluserdetails = () => {
             Role: u.Role,
             RewardPoints: u.RewardPoints,
           }));
-
+        
           setUsers(filteredUsers);
         }
       } catch (error) {
@@ -38,12 +38,12 @@ const Alluserdetails = () => {
 
     fetchUsers();
   }, [user]);
-
   const handleRewardChange = (index: number, newPoints: number) => {
     const updated = [...users];
     updated[index].RewardPoints = newPoints;
     setUsers(updated);
   };
+ 
 
   const handleSave = async (id: string, points: number) => {
     try {
@@ -57,10 +57,10 @@ const Alluserdetails = () => {
         }
       );
 
-      // Notify the user about reward update
+      
       socket.emit("reward-updated", {
         userId: id,
-        message: `Your reward points have been updated to ${points}`
+        message: `🎉 Your reward points have been updated to ${points}`
       });
 
       toast.success(res.data.message);

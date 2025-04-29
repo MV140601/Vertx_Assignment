@@ -59,20 +59,17 @@ const AllPosts = () => {
       console.log(res);
       const updatedPosts = posts.filter((post) => post.id !== postdata.id);
       setPosts(updatedPosts);
-      
+      socket.emit("report-post", {
+        reporterId: user?._id,
+        postId: postdata.id
+      });
       toast.success(res.data.message);
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Something went wrong");
       console.log(error);
     }
   };
-  const handleReport = (postId: string, reporterId: string) => {
-    if (user) {
-      socket.emit("report-post", { reporterId: user._id, postId });
-    } else {
-      toast.error("User is not logged in");
-    }
-  };
+ 
   
   const SavepostHandler = async (postdata: Post) => {
     try {

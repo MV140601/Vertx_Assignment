@@ -30,7 +30,7 @@ const AdminLogin = () => {
         // dispatch(getUser(res?.data?.user));
         console.log(res);
         if(res.data.success){
-          navigate("/");
+          navigate("/");    
          console.log(res.data.message); dispatch(setUser(res.data.user));
           toast.success(res.data.message);
         }

@@ -29,10 +29,6 @@ const ProjectBody = () => {
         element: <Alluserdetails />,
       },
         {
-          path: "/notifications",  
-        element: <Notifications />,
-      },
-        {
           path: "/savedposts",
           element: <Savedposts />,
         },{
@@ -59,21 +55,23 @@ const ProjectBody = () => {
   useEffect(() => {
     if (user?._id) {
       socket.emit('register', user._id);
-
+  
+      
       if (user.Role === 'Admin') {
-        socket.on('adminNotification', (message) => {
-          toast.success(`🔔 Admin Alert: ${message}`);
+        socket.on('admin-notification', (data) => {
+          toast.success(`🔔 Admin Alert: ${data.message}`);
         });
       } else {
-        socket.on('userNotification', (message) => {
-          toast.success(`🔔 Notification: ${message}`);
+        
+        socket.on('reward-updated', (data) => {
+          toast.success(`🎉 ${data.message}`);
         });
       }
     }
-
+  
     return () => {
-      socket.off('adminNotification');
-      socket.off('userNotification');
+      socket.off('admin-notification');
+      socket.off('reward-updated');
     };
   }, [user]);
   return (
